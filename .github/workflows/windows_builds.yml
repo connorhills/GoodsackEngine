@@ -30,7 +30,7 @@ jobs:
     - name: vcpkg
       uses: lukka/run-vcpkg@v11
       with:
-        vcpkgGitCommitId: 'latest'
+        vcpkgDirectory: '${{ github.workspace }}/vcpkg'
         runVcpkgInstall: true
         vcpkgJsonGlob: '**/vcpkg.json'
 
