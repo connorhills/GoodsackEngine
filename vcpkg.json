@@ -4,7 +4,6 @@
     "gtest",
     {
       "name": "imgui",
-      "version": "1.89.9",
       "features": [
         "glfw-binding",
         "opengl3-binding",
@@ -18,5 +17,13 @@
     },
     "openal-soft"
   ],
-  "builtin-baseline": "d9ccd77bb554e67137f3f754a2e2f11f4188c82c"
+
+  "builtin-baseline": "d9ccd77bb554e67137f3f754a2e2f11f4188c82c",
+
+  "overrides": [
+    {
+      "name": "imgui",
+      "version": "1.89.9"
+    }
+  ]
 }
