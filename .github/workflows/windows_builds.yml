@@ -53,5 +53,4 @@ jobs:
 
     # Run tests
     - name: Run Tests
-      working-directory: build/${{ env.BUILD_TYPE }}/bin
-      run: .\${{ env.TEST_EXECUTABLE }}.exe
+      run: .\build\${{ env.BUILD_TYPE }}\bin\${{ env.TEST_EXECUTABLE }}.exe
