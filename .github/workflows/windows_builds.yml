@@ -64,4 +64,6 @@ jobs:
 
     # Run tests
     - name: Run Tests
-      run: .\build\${{ env.BUILD_TYPE }}\bin\${{ env.TEST_EXECUTABLE }}.exe
+      shell: cmd
+      run: |
+          build\%BUILD_TYPE%\bin\%TEST_EXECUTABLE%.exe
