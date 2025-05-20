@@ -26,11 +26,22 @@ jobs:
     - name: CMake
       uses: lukka/get-cmake@latest
 
+      # grab baseline from vcpkg.json
+    - name: Extract vcpkg baseline
+      id: baseline
+      shell: pwsh
+      working-directory: ${{ github.workspace }}
+      run: |
+        $manifest   = Join-Path $env:GITHUB_WORKSPACE 'vcpkg.json'
+        $baseline   = (Get-Content $manifest -Raw | ConvertFrom-Json).'builtin-baseline'
+        "baseline=$baseline" | Out-File -Encoding utf8 -FilePath $env:GITHUB_OUTPUT
+
     # vcpkg + binary caching
     - name: vcpkg
       uses: lukka/run-vcpkg@v11
       with:
         vcpkgDirectory: '${{ github.workspace }}/vcpkg'
+        vcpkgCacheIdentifier: ${{ steps.baseline.outputs.baseline }}
         runVcpkgInstall: true
         vcpkgJsonGlob: '**/vcpkg.json'
 
