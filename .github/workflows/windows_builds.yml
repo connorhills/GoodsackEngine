@@ -30,18 +30,20 @@ jobs:
     - name: Extract vcpkg baseline
       id: baseline
       shell: pwsh
+      continue-on-error: true
       working-directory: ${{ github.workspace }}
       run: |
         $manifest   = Join-Path $env:GITHUB_WORKSPACE 'vcpkg.json'
         $baseline   = (Get-Content $manifest -Raw | ConvertFrom-Json).'builtin-baseline'
         "baseline=$baseline" | Out-File -Encoding utf8 -FilePath $env:GITHUB_OUTPUT
+        echo $baseline
+        echo $env:GITHUB_OUTPUT
 
     # vcpkg + binary caching
     - name: vcpkg
       uses: lukka/run-vcpkg@v11
       with:
         vcpkgDirectory: '${{ github.workspace }}/vcpkg'
-        vcpkgCacheIdentifier: ${{ steps.baseline.outputs.baseline }}
         runVcpkgInstall: true
         vcpkgJsonGlob: '**/vcpkg.json'
 
