@@ -64,6 +64,7 @@ jobs:
 
     # Run tests
     - name: Run Tests
-      working-directory: ${{ github.workspace }}/build/${{ env.BUILD_TYPE }}/bin
+      working-directory: ${{ github.workspace }}/build/output/bin/${{ env.BUILD_TYPE }}
       run: |
-          ./${{ env.TEST_EXECUTABLE }}.exe
+        ls
+        ./${{ env.TEST_EXECUTABLE }}.exe
