@@ -25,10 +25,11 @@ extern "C" {
 #define SCENE_TRANSFORM_TEST 7
 #define SCENE_MAP_TEST       8
 #define SCENE_ASSET_TEST     9
+#define SCENE_SOLAR_SYSTEM  10
 #define DEMO_SCENES_TOTAL    SCENE_ASSET_TEST
 
 #define LOAD_ALL_SCENES 0
-#define INITIAL_SCENE   SCENE_EARTH
+#define INITIAL_SCENE   SCENE_SOLAR_SYSTEM
 
 #define DEMO_USING_AUDIO            0
 #define DEMO_USING_MULTIPLE_CAMERAS 1
@@ -70,6 +71,9 @@ _scene8(gsk_ECS *ecs, gsk_Renderer *renderer);
 
 void
 _scene9(gsk_ECS *ecs, gsk_Renderer *renderer, gsk_AssetCache *p_asset_cache);
+
+void 
+_scene10(gsk_ECS *ecs, gsk_Renderer *renderer);
 
 #ifdef __cplusplus
 }

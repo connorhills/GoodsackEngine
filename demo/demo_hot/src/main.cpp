@@ -20,6 +20,8 @@
 
 #include "runtime/gsk_runtime.hpp"
 
+#include "systems/ecs_systems.h"
+
 int
 main(int argc, char *argv[])
 {
@@ -42,6 +44,8 @@ main(int argc, char *argv[])
                        gsk::runtime::rt_get_renderer(),
                        gsk::runtime::rt_get_asset_cache("data://demo.test"));
     gsk::runtime::rt_set_scene(INITIAL_SCENE);
+
+    rotate_planet_system_init(gsk::runtime::rt_get_ecs());
 
     gsk::runtime::rt_loop();
 

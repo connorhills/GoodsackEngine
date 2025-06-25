@@ -44,9 +44,10 @@ typedef enum ECSComponentType_t {
     C_TRANSFORM,
     C_WEAPON,     // TODO: Remove (new package)
     C_WEAPONSWAY, // TODO: Remove (new package)
+    C_PLANET,
 } ECSComponentType;
 
-#define ECSCOMPONENT_LAST C_WEAPONSWAY
+#define ECSCOMPONENT_LAST C_PLANET
 
 #if ECS_COMPONENTS_PACKED
 #pragma pack(push, 1)
@@ -287,6 +288,14 @@ struct ComponentWeaponSway
     CACHE_ALIGN(float sway_amount);
 };
 
+struct ComponentPlanet
+{
+    CACHE_ALIGN(float rotation_speed);
+    CACHE_ALIGN(float orbit_radius);
+    CACHE_ALIGN(float orbit_speed);
+    CACHE_ALIGN(float orbit_position);
+};
+
 #if ECS_COMPONENTS_PACKED
 #pragma pack(pop)
 #endif // ECS_COMPONENTS_PACKED
@@ -347,10 +356,12 @@ _ecs_init_internal_gen(gsk_ECS *ecs)
     _ECS_DECL_COMPONENT_INTERN(ecs, C_WEAPON, sizeof(struct ComponentWeapon));
     _ECS_DECL_COMPONENT_INTERN(
       ecs, C_WEAPONSWAY, sizeof(struct ComponentWeaponSway));
+    _ECS_DECL_COMPONENT_INTERN(
+      ecs, C_PLANET, sizeof(struct ComponentPlanet));
 }
 
 #ifdef __cplusplus
 }
 #endif //__cplusplus
 
-#endif // COMPONENTS_GEN_IMPLEMENTATION
+#endif // COMPONENTS_GEN_IMPLEMENTATION;

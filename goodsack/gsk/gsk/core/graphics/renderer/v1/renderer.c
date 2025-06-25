@@ -41,6 +41,43 @@
 #define TESTING_GLSAMPLER_OBJECTS 0
 #define LIGHTING_CULL_GLOBAL      1
 
+static
+gsk_Scene *
+gsk_allocate_new_scene(gsk_Renderer *p_renderer, u32 scene_id)
+{
+    // Create the initial scene
+    gsk_Scene *scene  = malloc(sizeof(gsk_Scene));
+    scene->id         = scene_id;
+    scene->ecs        = gsk_ecs_init(p_renderer);
+    scene->has_skybox = FALSE;
+
+    // Fog options
+    // TODO: Don't initialize the first fog options here
+    scene->fogOptions.fog_start   = -1.0f;
+    scene->fogOptions.fog_end     = 100.0f;
+    scene->fogOptions.fog_density = 0.1f;
+    {
+        vec4 fogcol4 = DEFAULT_CLEAR_COLOR;
+        glm_vec3_copy(fogcol4, scene->fogOptions.fog_color);
+    }
+
+    // FIRST Scene Lighting
+    // TODO: Don't initialize the first scene lighting data here
+    scene->lighting_data =
+      gsk_lighting_initialize(RENDERER_UBO_BINDING_LIGHTING);
+
+    vec3 lightPos   = {-3.4f, 2.4f, 1.4f};
+    vec4 lightColor = {0.73f, 0.87f, 0.91f, 1.0f};
+
+    // create directional light
+    gsk_lighting_add_light(
+      &scene->lighting_data, (float *)lightPos, (float *)lightColor);
+
+    p_renderer->scene_tracker[scene_id] = 1;
+
+    return scene;
+}
+
 gsk_Renderer *
 gsk_renderer_init(const char *app_name)
 {
@@ -66,33 +103,12 @@ gsk_renderer_init(const char *app_name)
     ret->renderWidth  = (RENDER_RESOLUTION_OVERRIDE) ? PSX_WIDTH : winWidth;
     ret->renderHeight = (RENDER_RESOLUTION_OVERRIDE) ? PSX_HEIGHT : winHeight;
 
-    // Create the initial scene
-    gsk_Scene *scene  = malloc(sizeof(gsk_Scene));
-    scene->id         = 0;
-    scene->ecs        = gsk_ecs_init(ret);
-    scene->has_skybox = FALSE;
-
-    // Fog options
-    // TODO: Don't initialize the first fog options here
-    scene->fogOptions.fog_start   = -1.0f;
-    scene->fogOptions.fog_end     = 100.0f;
-    scene->fogOptions.fog_density = 0.1f;
+    for(int i = 0; i < RENDERER_MAX_SCENES; i++)
     {
-        vec4 fogcol4 = DEFAULT_CLEAR_COLOR;
-        glm_vec3_copy(fogcol4, scene->fogOptions.fog_color);
+        ret->scene_tracker[i] = 0;
     }
 
-    // FIRST Scene Lighting
-    // TODO: Don't initialize the first scene lighting data here
-    scene->lighting_data =
-      gsk_lighting_initialize(RENDERER_UBO_BINDING_LIGHTING);
-
-    vec3 lightPos   = {-3.4f, 2.4f, 1.4f};
-    vec4 lightColor = {0.73f, 0.87f, 0.91f, 1.0f};
-
-    // create directional light
-    gsk_lighting_add_light(
-      &scene->lighting_data, (float *)lightPos, (float *)lightColor);
+    gsk_Scene * scene     = gsk_allocate_new_scene(ret, 0);
 
     // Scene list
 
@@ -162,6 +178,7 @@ gsk_renderer_init(const char *app_name)
 gsk_ECS *
 gsk_renderer_active_scene(gsk_Renderer *self, u16 sceneIndex)
 {
+    // TODO: Create new empty scenes for all newly "sandwiched" scenes.
     LOG_INFO("Loading scene: id %d", sceneIndex);
     u32 sceneCount = self->sceneC;
     if (sceneCount < sceneIndex + 1)
@@ -170,39 +187,33 @@ gsk_renderer_active_scene(gsk_Renderer *self, u16 sceneIndex)
           "Scene %d does not exist. Creating Scene %d", sceneIndex, sceneIndex);
         u32 newCount = sceneIndex - sceneCount + (sceneCount + 1);
 
-        // Create a new, empty scene
-        // TODO: Create new empty scenes for all newly "sandwiched" scenes.
-        gsk_Scene *newScene  = malloc(sizeof(gsk_Scene));
-        newScene->id         = newCount;
-        newScene->ecs        = gsk_ecs_init(self);
-        newScene->has_skybox = FALSE;
-
-        // Fog options
-        newScene->fogOptions.fog_start   = -1.0f;
-        newScene->fogOptions.fog_end     = 100.0f;
-        newScene->fogOptions.fog_density = 0.1f;
+        u32 total_new_scenes = newCount;
+        for(int i = 0; i < newCount; i++)
         {
-            vec4 fogcol4 = DEFAULT_CLEAR_COLOR;
-            glm_vec3_copy(fogcol4, newScene->fogOptions.fog_color);
+          if(self->scene_tracker[i] == 0)
+          {
+              LOG_INFO("Scene %d does not exist, must create it", i);
+              self->scene_tracker[i] = 2;
+              total_new_scenes++;
+          }
         }
 
-        // Scene Lighting
+        // Update the scene list based on needed amount
+        gsk_Scene **p = self->sceneL;
+        self->sceneL  = realloc(p, total_new_scenes * sizeof(gsk_Scene *));
 
-        newScene->lighting_data =
-          gsk_lighting_initialize(RENDERER_UBO_BINDING_LIGHTING);
+        // Create a new, empty scene
+        for(int i = 0; i < newCount; i++)
+        {
+          if(self->scene_tracker[i] == 2)
+          {
+              LOG_INFO("Creating new scene %d", i);
+              gsk_Scene *newScene = gsk_allocate_new_scene(self, i);
+              self->sceneL[i] = newScene;
+          }
+        }
 
-        vec3 lightPos   = {-3.4f, 2.4f, 1.4f};
-        vec4 lightColor = {0.73f, 0.87f, 0.91f, 1.0f};
-
-        // create directional light
-        gsk_lighting_add_light(
-          &newScene->lighting_data, (float *)lightPos, (float *)lightColor);
-
-        // Update the scene list
-        gsk_Scene **p              = self->sceneL;
-        self->sceneL               = realloc(p, newCount * sizeof(gsk_Scene *));
-        self->sceneL[newCount - 1] = newScene;
-        self->sceneC               = newCount;
+        self->sceneC = newCount;
     }
 
     self->activeScene       = sceneIndex;
