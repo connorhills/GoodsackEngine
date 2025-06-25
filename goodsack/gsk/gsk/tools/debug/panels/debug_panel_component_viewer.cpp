@@ -47,6 +47,7 @@ _component_type_name(ECSComponentType component_type)
     case C_TRANSFORM: return "Transform";
     case C_WEAPON: return "Weapon";
     case C_WEAPONSWAY: return "Weapon Sway";
+    case C_PLANET: return "Planet";
     default: return "None";
     }
 }
@@ -449,6 +450,17 @@ _draw_component_editors(gsk_Entity e, ECSComponentType cmp_type)
 
         DragFloat3("pos_starting", p.pos_starting, 0.1f, -3000, 3000);
         DragFloat3("rot_starting", p.rot_starting, 0.1f, -3000, 3000);
+    }
+
+    else if (cmp_type == C_PLANET)
+    {
+        struct ComponentPlanet &p = 
+          *(static_cast<struct ComponentPlanet *>(gsk_ecs_get(e, C_PLANET)));
+
+        DragFloat("rotation_speed", &p.rotation_speed, 0.1f, -3000, 3000);
+        DragFloat("orbit_radius", &p.orbit_radius, 0.1f, -3000, 3000);
+        DragFloat("orbit_speed", &p.orbit_speed, 0.1f, -3000, 3000);
+        DragFloat("orbit_rotation", &p.orbit_position, 0.1f, -3000, 3000);
     }
 }
 

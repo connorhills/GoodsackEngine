@@ -22,14 +22,27 @@ try {
 try {
     & 'MSBuild.exe' -v
 } catch {
-    Write-Warning "Missing MSBuild.exe in system path"
-    Exit
+    Write-Warning "Missing MSBuild.exe in system path. Attempting to locate..."
+    
+    $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+    if (Test-Path $vswhere) {
+        $msbuild_path = & $vswhere -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe
+        if ($msbuild_path) {
+            $env:Path += ";$(Split-Path -Path $msbuild_path)"
+        } else {
+            Write-Warning "MSBuild.exe not found via vswhere."
+            Exit
+        }
+    } else {
+        Write-Warning "vswhere.exe not found. Please install Visual Studio or manually set PATH."
+        Exit
+    }
 }
 
 # run cmake with vcpkg
 & 'cmake.exe' -S . -B build/ `
     -G "Visual Studio 17 2022" `
-    -DCMAKE_TOOLCHAIN_FILE="D:/Projects/vcpkg/vcpkg/scripts/buildsystems/vcpkg.cmake"
+    -DCMAKE_TOOLCHAIN_FILE="C:\Users\conno\vcpkg\scripts\buildsystems\vcpkg.cmake" 
 
 # msbuild
 & 'MSBuild.exe' .\build\GoodsackEngine.sln
