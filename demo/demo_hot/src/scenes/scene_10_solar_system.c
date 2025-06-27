@@ -77,6 +77,25 @@ _create_saturn_ring_(gsk_ECS *ecs, gsk_EntityId saturnId, gsk_Material *mat, gsk
     }
 }
 
+static gsk_Entity
+_create_earth_moon_(gsk_ECS *ecs, gsk_EntityId earthId, gsk_Material *m_material, gsk_Model *m_model)
+{
+        gsk_Entity moon_entity = gsk_ecs_new(ecs);
+        _gsk_ecs_add_internal(moon_entity,
+                              C_TRANSFORM,
+                              (void *)(&(struct ComponentTransform) {
+                                .position         = {2.0f, 0.0f, 0.0f},
+                                .scale            = {0.135f, 0.135f, 0.135f},
+                                .parent_entity_id = earthId,
+                              }));
+        _gsk_ecs_add_internal(moon_entity,
+                              C_MODEL,
+                              (void *)(&(struct ComponentModel) {
+                                .material = m_material,
+                                .pModel   = m_model,
+                              }));
+}
+
  void _scene10(gsk_ECS *ecs, gsk_Renderer *renderer)
  {
     gsk_Texture *texDefNorm, *texPbrAo, *texMissing;
@@ -122,11 +141,18 @@ _create_saturn_ring_(gsk_ECS *ecs, gsk_EntityId saturnId, gsk_Material *mat, gsk
     gsk_Model *model_rock   = GSK_ASSET("data://models/rock.obj");
 
     // Needed for ring to parent
-    gsk_Entity saturnEntity;
-    gsk_Material *matSaturn;
+    gsk_Entity saturn_entity;
+    gsk_Material *mat_saturn;
+
+    // Needed for moon to parent 
+    gsk_Entity earth_entity;
+    gsk_Material *mat_earth;
 
     gsk_Texture *rock_diffuse = GSK_ASSET("data://textures/rock/diffuse.png");
     gsk_Texture *rock_normal  = GSK_ASSET("data://textures/rock/normal.png");
+
+    gsk_Texture *moon_diffuse = GSK_ASSET("data://textures/planets/earth/moon/diffuse.png");
+    gsk_Texture *moon_normal  = GSK_ASSET("data://textures/planets/earth/moon/normal.png");
 
     gsk_Material *rock_material =
       gsk_material_create(NULL,
@@ -135,6 +161,14 @@ _create_saturn_ring_(gsk_ECS *ecs, gsk_EntityId saturnId, gsk_Material *mat, gsk
                           rock_diffuse,
                           rock_normal,
                           texDefSpec);
+
+    gsk_Material *mat_moon =
+      gsk_material_create(NULL,
+                          GSK_PATH("gsk://shaders/lit-diffuse.shader"),
+                          3,
+                          moon_diffuse,
+                          moon_normal,
+                          texDefSpec);                     
 
 
     const char *planet_names[10] = {"sun", "mercury", "venus", "earth", "mars",
@@ -171,16 +205,24 @@ _create_saturn_ring_(gsk_ECS *ecs, gsk_EntityId saturnId, gsk_Material *mat, gsk
                            norm,
                            texDefSpec);
 
-        gsk_Entity planetEntity = 
+        gsk_Entity planet_entity = 
         _create_planet_(ecs, p_mat, model_planet, 
                         planet_scales[i], rotation_speeds[i], orbit_radius[i], orbit_speeds[i]);
 
         //Sets saturnEntity to proper EntityId
         if(strcmp(planet_names[i], "saturn") == 0) {
-            saturnEntity = planetEntity;
-            matSaturn = p_mat;
+            saturn_entity = planet_entity;
+            mat_saturn = p_mat;
+        }
+
+        if(strcmp(planet_names[i], "earth") == 0) {
+            earth_entity  = planet_entity;
+            mat_earth   = p_mat;
         }
     }
 
-    _create_saturn_ring_(ecs, saturnEntity.id, rock_material, model_rock);
+
+    _create_saturn_ring_(ecs, saturn_entity.id, rock_material, model_rock);
+
+    _create_earth_moon_(ecs, earth_entity.id, mat_moon, model_planet);
 }
