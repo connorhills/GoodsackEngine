@@ -8,12 +8,74 @@
 #include "asset/asset.h"
 #include "systems/ecs_systems.h"
 
+#include "math.h"
 #include "entity/__generated__/components_gen.h"
 
 /*----------------------
  |  Scene 10
  |  Description: Solar System
  -----------------------*/
+static gsk_Entity 
+_create_planet_(gsk_ECS *p_ecs, gsk_Material *p_material, gsk_Model *planet_model,
+                float planet_scale, float rotation_speed, float orbit_radius, float orbit_speed)
+{
+    gsk_Entity planet_entity = gsk_ecs_new(p_ecs);
+    _gsk_ecs_add_internal(planet_entity, 
+                          C_TRANSFORM,
+                          (void *)(&(struct ComponentTransform) {
+                            .position = {0.0f, 0.0f, 0.0f},
+                            .scale    = {planet_scale, planet_scale, planet_scale},
+                          }));
+    _gsk_ecs_add_internal(planet_entity,
+                          C_MODEL,
+                          (void *)(&(struct ComponentModel) {
+                            .material = p_material,
+                            .pModel   = planet_model,
+                          }));
+    _gsk_ecs_add_internal(planet_entity,
+                          C_PLANET,
+                          (void *)(&(struct ComponentPlanet) {
+                            .rotation_speed = rotation_speed,
+                            .orbit_radius   = orbit_radius,
+                            .orbit_speed    = orbit_speed,
+                            .orbit_position = 0.0f,
+                          }));
+    return planet_entity;
+}
+static void
+_create_saturn_ring_(gsk_ECS *ecs, gsk_EntityId saturnId, gsk_Material *mat, gsk_Model *model)
+{
+    int rockAmount = 1000;
+
+    float ringRadius = 2.0f;
+    float offset     = 0.3f;
+
+    for (int i = 0; i < rockAmount; i++)
+    {
+        float angle        = (2.0 * 3.14 * i) / rockAmount;
+        float displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+        float x            = sin(angle) * ringRadius + displacement;
+        displacement       = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+        float y            = displacement * 0.4f;
+        displacement       = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+        float z            = cos(angle) * ringRadius + displacement;
+
+        gsk_Entity rock = gsk_ecs_new(ecs);
+        _gsk_ecs_add_internal(rock,
+                              C_TRANSFORM,
+                              (void *)(&(struct ComponentTransform) {
+                                .position         = {x, y, z},
+                                .scale            = {0.05f, 0.05f, 0.05f},
+                                .parent_entity_id = saturnId,
+                              }));
+        _gsk_ecs_add_internal(rock,
+                              C_MODEL,
+                              (void *)(&(struct ComponentModel) {
+                                .material = mat,
+                                .pModel   = model,
+                              }));
+    }
+}
 
  void _scene10(gsk_ECS *ecs, gsk_Renderer *renderer)
  {
@@ -24,118 +86,6 @@
         texture_create_hdr(GSK_PATH("gsk://textures/hdr/blue_galaxy_ref.hdr")));
 
     gsk_Texture *texDefSpec     = GSK_ASSET("gsk://textures/defaults/black.png");
-
-    gsk_Texture *texEarthDiff   = GSK_ASSET("data://textures/planets/earth/diffuse.png");
-    gsk_Texture *texEarthNorm   = GSK_ASSET("data://textures/planets/earth/normal.png");
-
-    gsk_Texture *texSunDiff     = GSK_ASSET("data://textures/planets/sun/diffuse.png");
-    gsk_Texture *texSunNorm     = GSK_ASSET("data://textures/planets/sun/normal.png");
-
-    gsk_Texture *texMercuryDiff = GSK_ASSET("data://textures/planets/mercury/diffuse.png");
-    gsk_Texture *texMercuryNorm = GSK_ASSET("data://textures/planets/mercury/normal.png");
-
-    gsk_Texture *texVenusDiff   = GSK_ASSET("data://textures/planets/venus/diffuse.png");
-    gsk_Texture *texVenusNorm   = GSK_ASSET("data://textures/planets/venus/normal.png");
-
-    gsk_Texture *texMarsDiff    = GSK_ASSET("data://textures/planets/mars/diffuse.png");
-    gsk_Texture *texMarsNorm    = GSK_ASSET("data://textures/planets/mars/normal.png");
-
-    gsk_Texture *texJupiterDiff = GSK_ASSET("data://textures/planets/jupiter/diffuse.png");
-    gsk_Texture *texJupiterNorm = GSK_ASSET("data://textures/planets/jupiter/normal.png");
-
-    gsk_Texture *texSaturnDiff  = GSK_ASSET("data://textures/planets/saturn/diffuse.png");
-    gsk_Texture *texSaturnNorm  = GSK_ASSET("data://textures/planets/saturn/normal.png");
-
-    gsk_Texture *texUranusDiff  = GSK_ASSET("data://textures/planets/uranus/diffuse.png");
-    gsk_Texture *texUranusNorm  = GSK_ASSET("data://textures/planets/uranus/normal.png");
-
-    gsk_Texture *texNeptuneDiff = GSK_ASSET("data://textures/planets/neptune/diffuse.png");
-    gsk_Texture *texNeptuneNorm = GSK_ASSET("data://textures/planets/neptune/normal.png");
-
-    gsk_Texture *texPlutoDiff   = GSK_ASSET("data://textures/planets/pluto/diffuse.png");
-    gsk_Texture *texPlutoNorm   = GSK_ASSET("data://textures/planets/pluto/normal.png");
-
-    gsk_Model *model_planet = GSK_ASSET("gsk://models/sphere.obj");
-
-    gsk_Material *matSun = 
-       gsk_material_create(NULL,
-                           GSK_PATH("gsk://shaders/lit-diffuse.shader"),
-                           3,
-                           texSunDiff,
-                           texSunNorm,
-                           texDefSpec);
-
-    gsk_Material *matMercury =
-      gsk_material_create(NULL,
-                          GSK_PATH("gsk://shaders/lit-diffuse.shader"),
-                          3,
-                          texMercuryDiff,
-                          texMercuryNorm,
-                          texDefSpec);
-
-    gsk_Material *matVenus =
-      gsk_material_create(NULL,
-                          GSK_PATH("gsk://shaders/lit-diffuse.shader"),
-                          3,
-                          texVenusDiff,
-                          texVenusNorm,
-                          texDefSpec);
-
-    gsk_Material *matEarth = 
-      gsk_material_create(NULL,
-                          GSK_PATH("gsk://shaders/lit-diffuse.shader"),
-                          3,
-                          texEarthDiff,
-                          texEarthNorm,
-                          texDefSpec);
-
-    gsk_Material *matMars =
-      gsk_material_create(NULL,
-                          GSK_PATH("gsk://shaders/lit-diffuse.shader"),
-                          3,
-                          texMarsDiff,
-                          texMarsNorm,
-                          texDefSpec);
-
-    gsk_Material *matJupiter =
-      gsk_material_create(NULL,
-                          GSK_PATH("gsk://shaders/lit-diffuse.shader"),
-                          3,
-                          texJupiterDiff,
-                          texJupiterNorm,
-                          texDefSpec);
-
-    gsk_Material *matSaturn =
-      gsk_material_create(NULL,
-                          GSK_PATH("gsk://shaders/lit-diffuse.shader"),
-                          3,
-                          texSaturnDiff,
-                          texSaturnNorm,
-                          texDefSpec);
-
-    gsk_Material *matUranus =
-      gsk_material_create(NULL,
-                          GSK_PATH("gsk://shaders/lit-diffuse.shader"),
-                          3,
-                          texUranusDiff,
-                          texUranusNorm,
-                          texDefSpec);
-
-    gsk_Material *matNeptune =
-      gsk_material_create(NULL,
-                          GSK_PATH("gsk://shaders/lit-diffuse.shader"),
-                          3,
-                          texNeptuneDiff,
-                          texNeptuneNorm,
-                          texDefSpec);
-
-    gsk_Material *matPluto =
-      gsk_material_create(NULL,
-                          GSK_PATH("gsk://shaders/lit-diffuse.shader"),
-                          3,
-                          texPlutoDiff,
-                          texPlutoNorm,
-                          texDefSpec);
 
     ecs = gsk_renderer_active_scene(renderer, 10);
     __set_active_scene_skybox(renderer, def_skybox);
@@ -167,223 +117,70 @@
                             .position = {0.0f, 0.0f, 2.0f},
                           }));
 
-    gsk_Entity sunEntity = gsk_ecs_new(ecs);
-    _gsk_ecs_add_internal(sunEntity, 
-                          C_TRANSFORM,
-                          (void *)(&(struct ComponentTransform) {
-                            .position = {0.0f, 0.0f, 0.0f},
-                            .scale    = {2.0f, 2.0f, 2.0f},
-                          }));
-    _gsk_ecs_add_internal(sunEntity,
-                          C_MODEL,
-                          (void *)(&(struct ComponentModel) {
-                            .material = matSun,
-                            .pModel   = model_planet,
-                          }));
-    _gsk_ecs_add_internal(sunEntity,
-                          C_PLANET,
-                          (void *)(&(struct ComponentPlanet) {
-                            .rotation_speed = 1.0f,
-                            .orbit_radius   = 0.0f,
-                            .orbit_speed    = 0.0f,
-                            .orbit_position = 0.0f,
-                          }));
-
-    gsk_Entity mercuryEntity = gsk_ecs_new(ecs);
-    _gsk_ecs_add_internal(mercuryEntity,
-                          C_TRANSFORM,
-                          (void *)(&(struct ComponentTransform) {
-                            .position = {4.5f, 0.0f, 0.0f},
-                            .scale    = {0.2f, 0.2f, 0.2f},
-                          }));
-    _gsk_ecs_add_internal(mercuryEntity,
-                          C_MODEL,
-                          (void *)(&(struct ComponentModel) {
-                            .material = matMercury,
-                            .pModel   = model_planet,
-                          }));
-    _gsk_ecs_add_internal(mercuryEntity,
-                          C_PLANET,
-                          (void *)(&(struct ComponentPlanet) {
-                            .rotation_speed = 5.0f,
-                            .orbit_radius   = 4.5f,
-                            .orbit_speed    = 1.0f,
-                            .orbit_position = 0.0f,
-                          }));
+    gsk_Model *model_planet = GSK_ASSET("gsk://models/sphere.obj");
     
-    gsk_Entity venusEntity = gsk_ecs_new(ecs);
-    _gsk_ecs_add_internal(venusEntity,
-                          C_TRANSFORM,
-                          (void *)(&(struct ComponentTransform) {
-                            .position = {7.5f, 0.0f, 0.0f},
-                            .scale    = {0.5f, 0.5f, 0.5f},
-                          }));
-    _gsk_ecs_add_internal(venusEntity,
-                          C_MODEL,
-                          (void *)(&(struct ComponentModel) {
-                            .material = matVenus,
-                            .pModel   = model_planet,
-                          }));
-    _gsk_ecs_add_internal(venusEntity,
-                          C_PLANET,
-                          (void *)(&(struct ComponentPlanet) {
-                            .rotation_speed = 10.0f,
-                            .orbit_radius   = 7.5f,
-                            .orbit_speed    = 0.7f,
-                            .orbit_position = 0.0f,
-                          }));
+    gsk_Model *model_rock   = GSK_ASSET("data://models/rock.obj");
 
-    gsk_Entity earthEntity = gsk_ecs_new(ecs);
-    _gsk_ecs_add_internal(earthEntity,
-                          C_TRANSFORM,
-                          (void *)(&(struct ComponentTransform) {
-                            .position = {10.5f, 0.0f, 0.0f},
-                            .scale    = {0.6f, 0.6f, 0.6f},
-                          }));
-    _gsk_ecs_add_internal(earthEntity,
-                          C_MODEL,
-                          (void *)(&(struct ComponentModel) {
-                            .material = matEarth,
-                            .pModel   = model_planet,
-                          }));
-    _gsk_ecs_add_internal(earthEntity,
-                          C_PLANET,
-                          (void *)(&(struct ComponentPlanet) {
-                            .rotation_speed = 15.0f,
-                            .orbit_radius   = 10.5f,
-                            .orbit_speed    = 0.6f,
-                            .orbit_position = 0.0f,
-                          }));
+    // Needed for ring to parent
+    gsk_Entity saturnEntity;
+    gsk_Material *matSaturn;
 
-    gsk_Entity marsEntity = gsk_ecs_new(ecs);
-    _gsk_ecs_add_internal(marsEntity,
-                          C_TRANSFORM,
-                          (void *)(&(struct ComponentTransform) {
-                            .position = {13.5f, 0.0f, 0.0f},
-                            .scale    = {0.4f, 0.4f, 0.4f},
-                          }));
-    _gsk_ecs_add_internal(marsEntity,
-                          C_MODEL,
-                          (void *)(&(struct ComponentModel) {
-                            .material = matMars,
-                            .pModel   = model_planet,
-                          }));
-    _gsk_ecs_add_internal(marsEntity,
-                          C_PLANET,
-                          (void *)(&(struct ComponentPlanet) {
-                            .rotation_speed = 20.0f,
-                            .orbit_radius   = 13.5f,
-                            .orbit_speed    = 0.5f,
-                            .orbit_position = 0.0f,
-                          }));
+    gsk_Texture *rock_diffuse = GSK_ASSET("data://textures/rock/diffuse.png");
+    gsk_Texture *rock_normal  = GSK_ASSET("data://textures/rock/normal.png");
 
-    gsk_Entity jupiterEntity = gsk_ecs_new(ecs);
-    _gsk_ecs_add_internal(jupiterEntity,
-                          C_TRANSFORM,
-                          (void *)(&(struct ComponentTransform) {
-                            .position = {17.0f, 0.0f, 0.0f},
-                            .scale    = {1.2f, 1.2f, 1.2f},
-                          }));
-    _gsk_ecs_add_internal(jupiterEntity,
-                          C_MODEL,
-                          (void *)(&(struct ComponentModel) {
-                            .material = matJupiter,
-                            .pModel   = model_planet,
-                          }));
-    _gsk_ecs_add_internal(jupiterEntity,
-                          C_PLANET,
-                          (void *)(&(struct ComponentPlanet) {
-                            .rotation_speed = 25.0f,
-                            .orbit_radius   = 17.0f,
-                            .orbit_speed    = 0.25f,
-                            .orbit_position = 0.0f,
-                          }));
+    gsk_Material *rock_material =
+      gsk_material_create(NULL,
+                          GSK_PATH("gsk://shaders/lit-diffuse.shader"),
+                          3,
+                          rock_diffuse,
+                          rock_normal,
+                          texDefSpec);
 
-    gsk_Entity saturnEntity = gsk_ecs_new(ecs);
-    _gsk_ecs_add_internal(saturnEntity,
-                          C_TRANSFORM,
-                          (void *)(&(struct ComponentTransform) {
-                            .position = {21.0f, 0.0f, 0.0f},
-                            .scale    = {1.0f, 1.0f, 1.0f},
-                          }));
-    _gsk_ecs_add_internal(saturnEntity,
-                          C_MODEL,
-                          (void *)(&(struct ComponentModel) {
-                            .material = matSaturn,
-                            .pModel   = model_planet,
-                          }));
-    _gsk_ecs_add_internal(saturnEntity,
-                          C_PLANET,
-                          (void *)(&(struct ComponentPlanet) {
-                            .rotation_speed = 30.0f,
-                            .orbit_radius   = 21.0f,
-                            .orbit_speed    = 0.2f,
-                            .orbit_position = 0.0f,
-                          }));
 
-    gsk_Entity uranusEntity = gsk_ecs_new(ecs);
-    _gsk_ecs_add_internal(uranusEntity,
-                          C_TRANSFORM,
-                          (void *)(&(struct ComponentTransform) {
-                            .position = {24.5f, 0.0f, 0.0f},
-                            .scale    = {0.8f, 0.8f, 0.8f},
-                          }));
-    _gsk_ecs_add_internal(uranusEntity,
-                          C_MODEL,
-                          (void *)(&(struct ComponentModel) {
-                            .material = matUranus,
-                            .pModel   = model_planet,
-                          }));
-    _gsk_ecs_add_internal(uranusEntity,
-                          C_PLANET,
-                          (void *)(&(struct ComponentPlanet) {
-                            .rotation_speed = 35.0f,
-                            .orbit_radius   = 24.5f,
-                            .orbit_speed    = 0.14f,
-                            .orbit_position = 0.0f,
-                          }));
+    const char *planet_names[10] = {"sun", "mercury", "venus", "earth", "mars",
+                                    "jupiter", "saturn", "uranus", "neptune", "pluto"};
 
-    gsk_Entity neptuneEntity = gsk_ecs_new(ecs);
-    _gsk_ecs_add_internal(neptuneEntity,
-                          C_TRANSFORM,
-                          (void *)(&(struct ComponentTransform) {
-                            .position = {28.0f, 0.0f, 0.0f},
-                            .scale    = {0.7f, 0.7f, 0.7f},
-                          }));
-    _gsk_ecs_add_internal(neptuneEntity,
-                          C_MODEL,
-                          (void *)(&(struct ComponentModel) {
-                            .material = matNeptune,
-                            .pModel   = model_planet,
-                          }));
-    _gsk_ecs_add_internal(neptuneEntity,
-                          C_PLANET,
-                          (void *)(&(struct ComponentPlanet) {
-                            .rotation_speed = 40.0f,
-                            .orbit_radius   = 28.0f,
-                            .orbit_speed    = 0.11f,
-                            .orbit_position = 0.0f,
-                          }));
+    float planet_scales[10]      = {2.0f, 0.2f, 0.5f, 0.6f, 0.4f,
+                                    1.2f, 1.0f, 0.8f, 0.7f, 0.2f};
 
-    gsk_Entity plutoEntity = gsk_ecs_new(ecs);
-    _gsk_ecs_add_internal(plutoEntity,
-                          C_TRANSFORM,
-                          (void *)(&(struct ComponentTransform) {
-                            .position = {31.0f, 0.0f, 0.0f},
-                            .scale    = {0.2f, 0.2f, 0.2f},
-                          }));
-    _gsk_ecs_add_internal(plutoEntity,
-                          C_MODEL,
-                          (void *)(&(struct ComponentModel) {
-                            .material = matPluto,
-                            .pModel   = model_planet,
-                          }));
-    _gsk_ecs_add_internal(plutoEntity,
-                          C_PLANET,
-                          (void *)(&(struct ComponentPlanet) {
-                            .rotation_speed = 45.0f,
-                            .orbit_radius   = 31.0f,
-                            .orbit_speed    = 0.09f,
-                            .orbit_position = 0.0f,
-                          }));
+    float rotation_speeds[10]    = {0.0f, 5.0f, 10.0f, 25.0f, 24.5f, 
+                                    50.0f, 46.3f, 32.5, 34.5f, 15.0f};
+
+    float orbit_radius[10]       = {0.0f, 4.5f, 7.5f, 10.5f, 13.5f,
+                                    17.0f, 21.0f, 24.5, 28.0, 31.0f};
+
+    float orbit_speeds[10]       = {0.0f, 1.0f, 0.7f, 0.6f, 0.5f, 
+                                    0.25f, 0.2f, 0.14f, 0.11f, 0.09f};
+                
+    for (int i = 0; i < 10; i++)
+    {
+      char diffuse[128] = "";
+      char normal[128]  = "";
+
+      snprintf(diffuse, sizeof(diffuse), "data://textures/planets/%s/diffuse.png", planet_names[i]);
+      snprintf(normal, sizeof(normal), "data://textures/planets/%s/normal.png", planet_names[i]);
+
+      gsk_Texture *diff = GSK_ASSET(diffuse);
+      gsk_Texture *norm = GSK_ASSET(normal);
+
+      gsk_Material *p_mat =
+       gsk_material_create(NULL,
+                           GSK_PATH("gsk://shaders/lit-diffuse.shader"),
+                           3,
+                           diff,
+                           norm,
+                           texDefSpec);
+
+        gsk_Entity planetEntity = 
+        _create_planet_(ecs, p_mat, model_planet, 
+                        planet_scales[i], rotation_speeds[i], orbit_radius[i], orbit_speeds[i]);
+
+        //Sets saturnEntity to proper EntityId
+        if(strcmp(planet_names[i], "saturn") == 0) {
+            saturnEntity = planetEntity;
+            matSaturn = p_mat;
+        }
+    }
+
+    _create_saturn_ring_(ecs, saturnEntity.id, rock_material, model_rock);
 }
