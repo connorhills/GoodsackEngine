@@ -13,7 +13,7 @@ init(gsk_Entity entity)
 static void
 update(gsk_Entity entity)
 {
-    if (gsk_ecs_has(entity, C_CAMERA)) { return; }
+    if (!gsk_ecs_has(entity, C_PLANET)) { return; }
 
     struct ComponentTransform *transform = gsk_ecs_get(entity, C_TRANSFORM);
     struct ComponentPlanet    *planet = gsk_ecs_get(entity, C_PLANET);
