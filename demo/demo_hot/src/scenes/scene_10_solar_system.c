@@ -60,12 +60,20 @@ _create_saturn_ring_(gsk_ECS *ecs, gsk_EntityId saturnId, gsk_Material *mat, gsk
         displacement       = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
         float z            = cos(angle) * ringRadius + displacement;
 
+        float rot_x = ((float) rand() / RAND_MAX) * 20.0f * 3.14;
+        float rot_y = ((float) rand() / RAND_MAX) * 20.0f * 3.14;
+        float rot_z = ((float) rand() / RAND_MAX) * 20.0f * 3.14;
+
+        float scale = 0.01f + ((float) rand() / RAND_MAX) * 0.05f;
+
+
         gsk_Entity rock = gsk_ecs_new(ecs);
         _gsk_ecs_add_internal(rock,
                               C_TRANSFORM,
                               (void *)(&(struct ComponentTransform) {
                                 .position         = {x, y, z},
-                                .scale            = {0.05f, 0.05f, 0.05f},
+                                .scale            = {scale, scale, scale},
+                                .orientation      = {rot_x, rot_y, rot_z},
                                 .parent_entity_id = saturnId,
                               }));
         _gsk_ecs_add_internal(rock,
@@ -106,35 +114,7 @@ _create_earth_moon_(gsk_ECS *ecs, gsk_EntityId earthId, gsk_Material *m_material
 
     gsk_Texture *texDefSpec     = GSK_ASSET("gsk://textures/defaults/black.png");
 
-    ecs = gsk_renderer_active_scene(renderer, 10);
-    __set_active_scene_skybox(renderer, def_skybox);
 
-    gsk_Entity *pCamera = malloc(sizeof(gsk_Entity));
-    *pCamera            = gsk_ecs_new(ecs);
-
-    gsk_Entity camera = *pCamera;
-    _gsk_ecs_add_internal(
-        camera,
-        C_CAMERA,
-        (void *)(&(struct ComponentCamera) {
-            .axisUp      = {0.0f, 1.0f, 0.0f},
-            .renderLayer = 0,
-        }));
-    _gsk_ecs_add_internal(camera,
-                          C_CAMERALOOK,
-                          (void *)(&(struct ComponentCameraLook) {
-                            .sensitivity = 1.0f,
-                          }));
-    _gsk_ecs_add_internal(camera,
-                          C_CAMERAMOVEMENT,
-                          (void *)(&(struct ComponentCameraMovement) {
-                            .speed = 5.0f,
-                          }));
-    _gsk_ecs_add_internal(camera,
-                          C_TRANSFORM,
-                          (void *)(&(struct ComponentTransform) {
-                            .position = {0.0f, 0.0f, 2.0f},
-                          }));
 
     gsk_Model *model_planet = GSK_ASSET("gsk://models/sphere.obj");
     
@@ -185,6 +165,36 @@ _create_earth_moon_(gsk_ECS *ecs, gsk_EntityId earthId, gsk_Material *m_material
 
     float orbit_speeds[10]       = {0.0f, 1.0f, 0.7f, 0.6f, 0.5f, 
                                     0.25f, 0.2f, 0.14f, 0.11f, 0.09f};
+
+    ecs = gsk_renderer_active_scene(renderer, 10);
+    __set_active_scene_skybox(renderer, def_skybox);
+
+    gsk_Entity *pCamera = malloc(sizeof(gsk_Entity));
+    *pCamera            = gsk_ecs_new(ecs);
+
+    gsk_Entity camera = *pCamera;
+    _gsk_ecs_add_internal(
+        camera,
+        C_CAMERA,
+        (void *)(&(struct ComponentCamera) {
+            .axisUp      = {0.0f, 1.0f, 0.0f},
+            .renderLayer = 0,
+        }));
+    _gsk_ecs_add_internal(camera,
+                          C_CAMERALOOK,
+                          (void *)(&(struct ComponentCameraLook) {
+                            .sensitivity = 1.0f,
+                          }));
+    _gsk_ecs_add_internal(camera,
+                          C_CAMERAMOVEMENT,
+                          (void *)(&(struct ComponentCameraMovement) {
+                            .speed = 5.0f,
+                          }));
+    _gsk_ecs_add_internal(camera,
+                          C_TRANSFORM,
+                          (void *)(&(struct ComponentTransform) {
+                            .position = {0.0f, 0.0f, 2.0f},
+                          }));
                 
     for (int i = 0; i < 10; i++)
     {
@@ -220,7 +230,6 @@ _create_earth_moon_(gsk_ECS *ecs, gsk_EntityId earthId, gsk_Material *m_material
             mat_earth   = p_mat;
         }
     }
-
 
     _create_saturn_ring_(ecs, saturn_entity.id, rock_material, model_rock);
 
